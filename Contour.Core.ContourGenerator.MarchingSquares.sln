@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11520.95 d18.3
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Contour.Core.ContourGenerator.MarchingSquares", "Contour.Core.ContourGenerator.MarchingSquares\Contour.Core.ContourGenerator.MarchingSquares.csproj", "{89F2C1A0-C425-EDBE-D2F9-AF941773D8F9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Contour.Core.ContourGenerator.MarchingSquares.Tests", "Contour.Core.ContourGenerator.MarchingSquares.Tests\Contour.Core.ContourGenerator.MarchingSquares.Tests.csproj", "{4FCCCC43-F2BA-4674-82C4-D4F6480B2AF0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{89F2C1A0-C425-EDBE-D2F9-AF941773D8F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89F2C1A0-C425-EDBE-D2F9-AF941773D8F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89F2C1A0-C425-EDBE-D2F9-AF941773D8F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89F2C1A0-C425-EDBE-D2F9-AF941773D8F9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4FCCCC43-F2BA-4674-82C4-D4F6480B2AF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4FCCCC43-F2BA-4674-82C4-D4F6480B2AF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4FCCCC43-F2BA-4674-82C4-D4F6480B2AF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4FCCCC43-F2BA-4674-82C4-D4F6480B2AF0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5A19A432-45F3-4E24-AEA3-72B4CA66CE83}
+	EndGlobalSection
+EndGlobal
