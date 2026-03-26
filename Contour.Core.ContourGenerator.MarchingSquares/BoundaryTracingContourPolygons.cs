@@ -312,10 +312,11 @@ public class BoundaryTracingContourPolygons : IContourPolygons
     }
 
     /// <summary>
-    /// Chains boundary segments into closed rings (undirected) and builds polygons.
-    /// Segments are treated as undirected edges: the traversal direction is determined by
-    /// the ring topology, not the original segment direction (which varies depending on
-    /// triangle winding and vertex ordering). Zero-length segments are skipped.
+    /// Chains boundary segments into closed rings and builds polygons.
+    /// Segments are treated as undirected edges. At vertices where multiple unused edges meet
+    /// (degree 4+), planar face traversal is used: the edge with the smallest clockwise angle
+    /// from the back-direction is selected, preventing the traversal from jumping between
+    /// separate boundary rings that share a vertex. Zero-length segments are skipped.
     /// </summary>
     private static void ChainSegmentsAndBuildPolygons(
         List<BoundarySegment> segments, GeometryFactory gf, List<Polygon> results)
@@ -342,7 +343,7 @@ public class BoundaryTracingContourPolygons : IContourPolygons
             AddAdjacency(adj, edges[i].B, edges[i].A, i);
         }
 
-        // Trace closed rings by following undirected edges
+        // Trace closed rings by following undirected edges with angle-based selection
         var usedEdge = new bool[edges.Count];
         var rings = new List<LinearRing>();
 
@@ -365,20 +366,7 @@ public class BoundaryTracingContourPolygons : IContourPolygons
                     : (Coordinate)edges[curEdge].A;
 
                 // Find the next unused edge at the other endpoint
-                curEdge = -1;
-                var key = (next.X, next.Y);
-                if (adj.TryGetValue(key, out var candidates))
-                {
-                    for (int c = 0; c < candidates.Count; c++)
-                    {
-                        if (!usedEdge[candidates[c].EdgeIdx])
-                        {
-                            curEdge = candidates[c].EdgeIdx;
-                            break;
-                        }
-                    }
-                }
-
+                curEdge = FindNextEdge(adj, usedEdge, edges, current, next);
                 current = next;
             }
 
@@ -390,7 +378,76 @@ public class BoundaryTracingContourPolygons : IContourPolygons
         }
 
         if (rings.Count == 0) return;
+        AssemblePolygons(rings, gf, results);
+    }
 
+    /// <summary>
+    /// Finds the next edge to follow at vertex <paramref name="next"/>, having arrived from
+    /// vertex <paramref name="current"/>. When multiple unused edges are available (degree 4+),
+    /// selects the edge with the smallest clockwise angle from the back-direction (next→current).
+    /// This implements planar face traversal, ensuring the ring stays on its own face boundary
+    /// instead of jumping to a different ring at shared vertices.
+    /// </summary>
+    private static int FindNextEdge(
+        Dictionary<(double X, double Y), List<(Coordinate Neighbor, int EdgeIdx)>> adj,
+        bool[] usedEdge, List<(Coordinate A, Coordinate B)> edges,
+        Coordinate current, Coordinate next)
+    {
+        var key = (next.X, next.Y);
+        if (!adj.TryGetValue(key, out var candidates)) return -1;
+
+        // Fast path: count unused candidates
+        int unusedCount = 0;
+        int singleIdx = -1;
+        for (int c = 0; c < candidates.Count; c++)
+        {
+            if (!usedEdge[candidates[c].EdgeIdx])
+            {
+                unusedCount++;
+                singleIdx = candidates[c].EdgeIdx;
+            }
+        }
+
+        if (unusedCount <= 1) return singleIdx; // -1 if none, the only one if 1
+
+        // Degree 4+: use angle-based planar face traversal.
+        // Back direction: from 'next' looking toward 'current' (where we came from).
+        double backAngle = Math.Atan2(current.Y - next.Y, current.X - next.X);
+        double bestCwAngle = double.MaxValue;
+        int bestEdge = -1;
+
+        for (int c = 0; c < candidates.Count; c++)
+        {
+            int edgeIdx = candidates[c].EdgeIdx;
+            if (usedEdge[edgeIdx]) continue;
+
+            Coordinate neighbor = candidates[c].Neighbor;
+            double outAngle = Math.Atan2(neighbor.Y - next.Y, neighbor.X - next.X);
+
+            // Clockwise angle from back direction to outgoing direction, in (0, 2π]
+            double cwAngle = backAngle - outAngle;
+            cwAngle = ((cwAngle % (2.0 * Math.PI)) + 2.0 * Math.PI) % (2.0 * Math.PI);
+            if (cwAngle < 1e-10) cwAngle = 2.0 * Math.PI; // exclude ~0 (would go back)
+
+            if (cwAngle < bestCwAngle)
+            {
+                bestCwAngle = cwAngle;
+                bestEdge = edgeIdx;
+            }
+        }
+
+        return bestEdge;
+    }
+
+    /// <summary>
+    /// Assembles rings into polygons using containment testing.
+    /// Rings are classified as outer or hole based on nesting depth:
+    /// depth 0 = outer shell, depth 1 = hole, depth 2 = outer inside a hole, etc.
+    /// This is robust regardless of ring orientation.
+    /// </summary>
+    private static void AssemblePolygons(List<LinearRing> rings, GeometryFactory gf,
+        List<Polygon> results)
+    {
         if (rings.Count == 1)
         {
             var ring = EnsureCCW(rings[0], gf);
@@ -398,31 +455,99 @@ public class BoundaryTracingContourPolygons : IContourPolygons
             return;
         }
 
-        // Multiple rings: the ring with the largest area is the outer ring, others are holes.
-        // A single connected component has exactly one outer boundary but may have multiple holes
-        // (islands of below-interval values inside the region).
-        int outerIdx = 0;
-        double maxArea = 0;
-        for (int i = 0; i < rings.Count; i++)
+        int n = rings.Count;
+        var areas = new double[n];
+        for (int i = 0; i < n; i++)
+            areas[i] = Math.Abs(Area.OfRing(rings[i].Coordinates));
+
+        // Sort by area descending — larger rings are checked first for containment
+        var indices = Enumerable.Range(0, n).OrderByDescending(i => areas[i]).ToArray();
+
+        // For each ring, find its direct parent (the smallest ring that contains it).
+        // A ring at even nesting depth (0, 2, 4...) is an outer shell.
+        // A ring at odd nesting depth (1, 3, 5...) is a hole.
+        var parent = new int[n];
+        var depth = new int[n];
+        Array.Fill(parent, -1);
+
+        for (int i = 0; i < n; i++)
         {
-            double area = Math.Abs(Area.OfRing(rings[i].Coordinates));
-            if (area > maxArea)
+            int ri = indices[i];
+            for (int j = i + 1; j < n; j++)
             {
-                maxArea = area;
-                outerIdx = i;
+                int rj = indices[j];
+                // Check if ring rj is inside ring ri (ri is larger, so ri might contain rj)
+                if (parent[rj] == -1 && PointInRing(rings[rj].GetCoordinateN(0), rings[ri]))
+                {
+                    parent[rj] = ri;
+                    depth[rj] = depth[ri] + 1;
+                }
             }
         }
 
-        var outer = EnsureCCW(rings[outerIdx], gf);
-        var holes = new LinearRing[rings.Count - 1];
-        int hi = 0;
-        for (int i = 0; i < rings.Count; i++)
+        // Assign holes to their parent outer shells.
+        // Outers (even depth) become polygon shells; holes (odd depth) attach to their parent.
+        var shellHoles = new Dictionary<int, List<LinearRing>>();
+
+        for (int i = 0; i < n; i++)
         {
-            if (i == outerIdx) continue;
-            holes[hi++] = EnsureCW(rings[i], gf);
+            if (depth[i] % 2 == 0) // outer shell
+            {
+                shellHoles[i] = new List<LinearRing>();
+            }
         }
 
-        results.Add(gf.CreatePolygon(outer, holes));
+        for (int i = 0; i < n; i++)
+        {
+            if (depth[i] % 2 == 1) // hole
+            {
+                int parentIdx = parent[i];
+                if (parentIdx >= 0 && shellHoles.ContainsKey(parentIdx))
+                {
+                    shellHoles[parentIdx].Add(EnsureCW(rings[i], gf));
+                }
+            }
+        }
+
+        foreach (var (shellIdx, holes) in shellHoles)
+        {
+            var outer = EnsureCCW(rings[shellIdx], gf);
+            results.Add(gf.CreatePolygon(outer, holes.ToArray()));
+        }
+    }
+
+    /// <summary>
+    /// Computes the signed area of a ring. Positive = CCW, negative = CW (standard math coords).
+    /// </summary>
+    private static double SignedArea(Coordinate[] coords)
+    {
+        double sum = 0;
+        for (int i = 0, j = coords.Length - 1; i < coords.Length; j = i++)
+        {
+            sum += (coords[j].X - coords[i].X) * (coords[i].Y + coords[j].Y);
+        }
+
+        return sum / 2.0;
+    }
+
+    /// <summary>
+    /// Tests if a point lies inside a ring using the ray casting algorithm.
+    /// </summary>
+    private static bool PointInRing(Coordinate point, LinearRing ring)
+    {
+        var coords = ring.Coordinates;
+        bool inside = false;
+        for (int i = 0, j = coords.Length - 1; i < coords.Length; j = i++)
+        {
+            if ((coords[i].Y > point.Y) != (coords[j].Y > point.Y) &&
+                point.X < (coords[j].X - coords[i].X) * (point.Y - coords[i].Y) /
+                (coords[j].Y - coords[i].Y) + coords[i].X)
+            {
+                inside = !inside;
+            }
+        }
+
+        return inside;
     }
 
     private static void AddAdjacency(
