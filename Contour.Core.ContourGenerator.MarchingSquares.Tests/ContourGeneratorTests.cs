@@ -6,7 +6,7 @@ namespace Contour.Core.ContourGenerator.MarchingSquares.Tests;
 [TestClass]
 public class ContourGeneratorTests
 {
-    private static readonly Wgs84GeometryPrecision Precision = new();
+    private static readonly LccGeometryPrecision Precision = new();
 
     private readonly ContourGenerator _generator = new(
         new MarchingSquaresContourLines(Precision),

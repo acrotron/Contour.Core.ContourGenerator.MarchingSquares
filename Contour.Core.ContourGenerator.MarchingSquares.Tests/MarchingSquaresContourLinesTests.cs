@@ -6,7 +6,7 @@ namespace Contour.Core.ContourGenerator.MarchingSquares.Tests;
 [TestClass]
 public class MarchingSquaresContourLinesTests
 {
-    private readonly MarchingSquaresContourLines _contourLines = new(new Wgs84GeometryPrecision());
+    private readonly MarchingSquaresContourLines _contourLines = new(new LccGeometryPrecision());
 
     private static EsriAsciiRaster CreateRaster(int nCols, int nRows, double cellSize, double[,] data)
     {
