@@ -168,7 +168,7 @@ public class BoundaryTracingContourPolygons : IContourPolygons
             if (IsNeighborInComponent(tri, e, idToIdx, compId, cid)) continue;
 
             var (start, end) = GetEdgeVertices(tri, e);
-            segments.Add(new BoundarySegment(start, end));
+            segments.Add(new BoundarySegment(start, end, HasNoNeighbor(tri, e)));
         }
     }
 
@@ -212,16 +212,16 @@ public class BoundaryTracingContourPolygons : IContourPolygons
         // Edge A: above_v0 → interp_0 (partial edge on first crossed edge)
         if (!IsNeighborInComponent(tri, crossedIdx0, idToIdx, compId, cid))
         {
-            segments.Add(new BoundarySegment(above0, interp0));
+            segments.Add(new BoundarySegment(above0, interp0, HasNoNeighbor(tri, crossedIdx0)));
         }
 
-        // Edge B: interp_0 → interp_1 (contour segment — always a boundary)
-        segments.Add(new BoundarySegment(interp0, interp1));
+        // Edge B: interp_0 → interp_1 (the iso-line itself — never a hull edge)
+        segments.Add(new BoundarySegment(interp0, interp1, false));
 
         // Edge C: interp_1 → above_v1 (partial edge on second crossed edge)
         if (!IsNeighborInComponent(tri, crossedIdx1, idToIdx, compId, cid))
         {
-            segments.Add(new BoundarySegment(interp1, above1));
+            segments.Add(new BoundarySegment(interp1, above1, HasNoNeighbor(tri, crossedIdx1)));
         }
 
         // Edge D: above_v1 → above_v0 (uncrossed edge, only if vertices are distinct)
@@ -230,7 +230,7 @@ public class BoundaryTracingContourPolygons : IContourPolygons
             int uncrossedIdx = 3 - crossedIdx0 - crossedIdx1; // edges 0+1+2 = 3
             if (!IsNeighborInComponent(tri, uncrossedIdx, idToIdx, compId, cid))
             {
-                segments.Add(new BoundarySegment(above1, above0));
+                segments.Add(new BoundarySegment(above1, above0, HasNoNeighbor(tri, uncrossedIdx)));
             }
         }
     }
@@ -305,6 +305,16 @@ public class BoundaryTracingContourPolygons : IContourPolygons
         return nIdx >= 0 && compId[nIdx] == cid;
     }
 
+    /// <summary>
+    /// True when the triangle edge has no neighbour at all — the grid hull (data
+    /// extent) or a NoData/mask boundary. Distinguishes &quot;ran off the data edge&quot;
+    /// (open contour) from an interior boundary between above/below regions.
+    /// </summary>
+    private static bool HasNoNeighbor(TriExt tri, int edgeIndex)
+    {
+        return !tri.HasAdjacent((edgeIndex + 2) % 3);
+    }
+
     private static int LookupIndex(int triId, int[] idToIdx)
     {
         if (triId < 0 || triId >= idToIdx.Length) return -1;
@@ -323,12 +333,12 @@ public class BoundaryTracingContourPolygons : IContourPolygons
     {
         // Filter zero-length segments (occur when intersection coincides with a vertex,
         // e.g. center point M = interval)
-        var edges = new List<(Coordinate A, Coordinate B)>();
+        var edges = new List<(Coordinate A, Coordinate B, bool IsHull)>();
         for (int i = 0; i < segments.Count; i++)
         {
             if (!segments[i].Start.Equals2D(segments[i].End))
             {
-                edges.Add((segments[i].Start, segments[i].End));
+                edges.Add((segments[i].Start, segments[i].End, segments[i].IsHull));
             }
         }
 
@@ -346,6 +356,7 @@ public class BoundaryTracingContourPolygons : IContourPolygons
         // Trace closed rings by following undirected edges with angle-based selection
         var usedEdge = new bool[edges.Count];
         var rings = new List<LinearRing>();
+        var ringIsHull = new List<bool>();
 
         for (int i = 0; i < edges.Count; i++)
         {
@@ -354,10 +365,12 @@ public class BoundaryTracingContourPolygons : IContourPolygons
             var coords = new List<Coordinate>();
             Coordinate current = edges[i].A;
             int curEdge = i;
+            bool hasHull = false;
 
             while (curEdge >= 0 && !usedEdge[curEdge])
             {
                 usedEdge[curEdge] = true;
+                hasHull |= edges[curEdge].IsHull;
                 coords.Add(current);
 
                 // Follow edge to the other endpoint
@@ -374,11 +387,12 @@ public class BoundaryTracingContourPolygons : IContourPolygons
             {
                 coords.Add(coords[0]); // close ring
                 rings.Add(gf.CreateLinearRing(coords.ToArray()));
+                ringIsHull.Add(hasHull);
             }
         }
 
         if (rings.Count == 0) return;
-        AssemblePolygons(rings, gf, results);
+        AssemblePolygons(rings, ringIsHull, gf, results);
     }
 
     /// <summary>
@@ -390,7 +404,7 @@ public class BoundaryTracingContourPolygons : IContourPolygons
     /// </summary>
     private static int FindNextEdge(
         Dictionary<(double X, double Y), List<(Coordinate Neighbor, int EdgeIdx)>> adj,
-        bool[] usedEdge, List<(Coordinate A, Coordinate B)> edges,
+        bool[] usedEdge, List<(Coordinate A, Coordinate B, bool IsHull)> edges,
         Coordinate current, Coordinate next)
     {
         var key = (next.X, next.Y);
@@ -445,13 +459,16 @@ public class BoundaryTracingContourPolygons : IContourPolygons
     /// depth 0 = outer shell, depth 1 = hole, depth 2 = outer inside a hole, etc.
     /// This is robust regardless of ring orientation.
     /// </summary>
-    private static void AssemblePolygons(List<LinearRing> rings, GeometryFactory gf,
-        List<Polygon> results)
+    private static void AssemblePolygons(List<LinearRing> rings, List<bool> ringIsHull,
+        GeometryFactory gf, List<Polygon> results)
     {
         if (rings.Count == 1)
         {
             var ring = EnsureCCW(rings[0], gf);
-            results.Add(gf.CreatePolygon(ring));
+            var single = gf.CreatePolygon(ring);
+            // Carry the open/closed signal: a ring touching the grid hull is OPEN.
+            single.UserData = ringIsHull[0];
+            results.Add(single);
             return;
         }
 
@@ -488,12 +505,14 @@ public class BoundaryTracingContourPolygons : IContourPolygons
         // Assign holes to their parent outer shells.
         // Outers (even depth) become polygon shells; holes (odd depth) attach to their parent.
         var shellHoles = new Dictionary<int, List<LinearRing>>();
+        var shellHoleIdx = new Dictionary<int, List<int>>();
 
         for (int i = 0; i < n; i++)
         {
             if (depth[i] % 2 == 0) // outer shell
             {
                 shellHoles[i] = new List<LinearRing>();
+                shellHoleIdx[i] = new List<int>();
             }
         }
 
@@ -505,6 +524,7 @@ public class BoundaryTracingContourPolygons : IContourPolygons
                 if (parentIdx >= 0 && shellHoles.ContainsKey(parentIdx))
                 {
                     shellHoles[parentIdx].Add(EnsureCW(rings[i], gf));
+                    shellHoleIdx[parentIdx].Add(i);
                 }
             }
         }
@@ -512,7 +532,10 @@ public class BoundaryTracingContourPolygons : IContourPolygons
         foreach (var (shellIdx, holes) in shellHoles)
         {
             var outer = EnsureCCW(rings[shellIdx], gf);
-            results.Add(gf.CreatePolygon(outer, holes.ToArray()));
+            var polygon = gf.CreatePolygon(outer, holes.ToArray());
+            // OPEN if the shell or any of its holes runs along the grid hull.
+            polygon.UserData = ringIsHull[shellIdx] || shellHoleIdx[shellIdx].Any(hi => ringIsHull[hi]);
+            results.Add(polygon);
         }
     }
 
@@ -582,9 +605,16 @@ public class BoundaryTracingContourPolygons : IContourPolygons
         return gf.CreateLinearRing(ring.Coordinates.Reverse().ToArray());
     }
 
-    private readonly struct BoundarySegment(CoordinateM start, CoordinateM end)
+    private readonly struct BoundarySegment(CoordinateM start, CoordinateM end, bool isHull = false)
     {
         public CoordinateM Start { get; } = start;
         public CoordinateM End { get; } = end;
+
+        /// <summary>
+        /// True when this segment lies on a triangle edge that has no neighbour —
+        /// i.e. the grid hull (data extent) or a NoData/mask boundary. A ring that
+        /// includes such a segment is an OPEN contour (truncated by the data edge).
+        /// </summary>
+        public bool IsHull { get; } = isHull;
     }
 }
