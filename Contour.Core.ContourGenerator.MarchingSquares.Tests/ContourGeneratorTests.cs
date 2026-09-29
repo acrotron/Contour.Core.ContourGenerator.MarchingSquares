@@ -43,7 +43,7 @@ public class ContourGeneratorTests
     public void GenerateContourLines_GradientRaster_ProducesLines()
     {
         // Arrange
-        _generator.SetInput(RasterGrid.FromRaster(CreateGradientRaster()));
+        _generator.SetInput(TestRasterHelper.ToGrid(CreateGradientRaster()));
 
         // Act
         var result = _generator.GenerateContourLines([25.0, 50.0, 75.0]);
@@ -57,7 +57,7 @@ public class ContourGeneratorTests
     public void GenerateContourPolygons_GradientRaster_ProducesPolygons()
     {
         // Arrange
-        _generator.SetInput(RasterGrid.FromRaster(CreateGradientRaster()));
+        _generator.SetInput(TestRasterHelper.ToGrid(CreateGradientRaster()));
 
         // Act
         var result = _generator.GenerateContourPolygons([50.0]);
@@ -71,7 +71,7 @@ public class ContourGeneratorTests
     public void GenerateContourLines_EmptyIntervals_ReturnsEmptyDictionary()
     {
         // Arrange
-        _generator.SetInput(RasterGrid.FromRaster(CreateGradientRaster()));
+        _generator.SetInput(TestRasterHelper.ToGrid(CreateGradientRaster()));
 
         // Act
         var result = _generator.GenerateContourLines([]);
@@ -154,7 +154,7 @@ public class ContourGeneratorTests
         var generatorA = new ContourGenerator(
             new MarchingSquaresContourLines(Precision),
             new MarchingSquaresContourPolygons(Precision));
-        generatorA.SetInput(RasterGrid.FromRaster(raster));
+        generatorA.SetInput(TestRasterHelper.ToGrid(raster));
         var resultA = generatorA.GenerateContourLines([50.0]);
 
         // Path 2: FromNodes (using same raw coordinates as FromRaster would compute)

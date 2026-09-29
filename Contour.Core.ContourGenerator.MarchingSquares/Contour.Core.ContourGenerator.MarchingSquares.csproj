@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>Contour.Core.ContourGenerator.MarchingSquares</PackageId>
-    <Version>1.0.7</Version>
+    <Version>2.0.0</Version>
     <Authors>Acrotron</Authors>
     <Company>Acrotron</Company>
-    <Description>Contour line and polygon generation from raster grids using the Marching Squares algorithm. Subdivides raster cells into sub-triangles via bilinear interpolation and traces contours through the resulting mesh. Built on NetTopologySuite.</Description>
+    <Description>Contour line and polygon generation from grids using the Marching Squares algorithm. Subdivides raster cells into sub-triangles via bilinear interpolation and traces contours through the resulting mesh. Built on NetTopologySuite.</Description>
     <Copyright>Copyright (c) 2026 Acrotron</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -21,7 +21,6 @@
     <InternalsVisibleTo Include="Contour.Core.Esri.Tests" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="AsciiRaster.Parser" />
     <PackageReference Include="Contour.Core" />
     <PackageReference Include="NetTopologySuite" />
   </ItemGroup>

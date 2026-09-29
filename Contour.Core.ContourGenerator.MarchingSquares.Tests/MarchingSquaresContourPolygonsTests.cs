@@ -22,7 +22,7 @@ public class MarchingSquaresContourPolygonsTests
         data[0, 1] = 100; data[1, 1] = 100;
 
         var raster = CreateRaster(2, 2, 1.0, data);
-        var grid = RasterGrid.FromRaster(raster);
+        var grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Act
@@ -42,7 +42,7 @@ public class MarchingSquaresContourPolygonsTests
         data[0, 1] = 10; data[1, 1] = 10;
 
         var raster = CreateRaster(2, 2, 1.0, data);
-        var grid = RasterGrid.FromRaster(raster);
+        var grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Act
@@ -61,7 +61,7 @@ public class MarchingSquaresContourPolygonsTests
         data[0, 1] = 0;   data[1, 1] = 100;
 
         var raster = CreateRaster(2, 2, 1.0, data);
-        var grid = RasterGrid.FromRaster(raster);
+        var grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Act
@@ -87,7 +87,7 @@ public class MarchingSquaresContourPolygonsTests
         data[0, 2] = 0;  data[1, 2] = 50;  data[2, 2] = 100;
 
         var raster = CreateRaster(3, 3, 1.0, data);
-        var grid = RasterGrid.FromRaster(raster);
+        var grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Act
@@ -111,7 +111,7 @@ public class MarchingSquaresContourPolygonsTests
         data[0, 2] = 0;  data[1, 2] = 50;  data[2, 2] = 100;
 
         var raster = CreateRaster(3, 3, 1.0, data);
-        var grid = RasterGrid.FromRaster(raster);
+        var grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Act - should not throw even when interval matches vertex values exactly

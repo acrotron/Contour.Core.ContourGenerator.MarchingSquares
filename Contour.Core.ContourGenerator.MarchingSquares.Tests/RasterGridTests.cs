@@ -23,7 +23,7 @@ public class RasterGridTests
         var raster = CreateRaster(3, 3, 1.0, data);
 
         // Act
-        RasterGrid grid = RasterGrid.FromRaster(raster);
+        RasterGrid grid = TestRasterHelper.ToGrid(raster);
 
         // Assert
         grid.CellCols.Should().Be(2);
@@ -44,7 +44,7 @@ public class RasterGridTests
         var raster = CreateRaster(2, 2, 1.0, data);
 
         // Act
-        RasterGrid grid = RasterGrid.FromRaster(raster);
+        RasterGrid grid = TestRasterHelper.ToGrid(raster);
 
         // Assert - center should be average of 4 corners = 25.0
         var tris = grid.GetAllTriangles();
@@ -70,7 +70,7 @@ public class RasterGridTests
         var raster = CreateRaster(2, 2, 1.0, data);
 
         // Act
-        RasterGrid grid = RasterGrid.FromRaster(raster);
+        RasterGrid grid = TestRasterHelper.ToGrid(raster);
 
         // Assert - cell is excluded, no triangles
         grid.GetAllTriangles().Should().BeEmpty();
@@ -89,7 +89,7 @@ public class RasterGridTests
         var raster = CreateRaster(2, 2, 10.0, data);
 
         // Act
-        RasterGrid grid = RasterGrid.FromRaster(raster);
+        RasterGrid grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Assert - Triangle 0 (top): TL → TR → C
@@ -114,7 +114,7 @@ public class RasterGridTests
         var raster = CreateRaster(2, 2, 1.0, data);
 
         // Act
-        RasterGrid grid = RasterGrid.FromRaster(raster);
+        RasterGrid grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Assert - each triangle should have exactly 2 within-cell neighbors
@@ -138,7 +138,7 @@ public class RasterGridTests
         var raster = CreateRaster(3, 2, 1.0, data);
 
         // Act
-        RasterGrid grid = RasterGrid.FromRaster(raster);
+        RasterGrid grid = TestRasterHelper.ToGrid(raster);
 
         // Assert - right triangle of left cell and left triangle of right cell should be adjacent
         var rightTriOfLeftCell = grid.SubTriangles[0, 0, 1]; // right sub-tri of cell (0,0)
@@ -164,7 +164,7 @@ public class RasterGridTests
         var raster = CreateRaster(5, 4, 1.0, data);
 
         // Act
-        RasterGrid grid = RasterGrid.FromRaster(raster);
+        RasterGrid grid = TestRasterHelper.ToGrid(raster);
 
         // Assert
         grid.CellCols.Should().Be(4);

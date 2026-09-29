@@ -1,5 +1,6 @@
 using System.Globalization;
 using AsciiRaster.Parser;
+using NetTopologySuite.Geometries;
 
 namespace Contour.Core.ContourGenerator.MarchingSquares.Tests;
 
@@ -33,6 +34,30 @@ internal static class TestRasterHelper
         {
             File.Delete(path);
         }
+    }
+
+    /// <summary>
+    /// Builds a <see cref="RasterGrid"/> from an <see cref="EsriAsciiRaster"/> through <see cref="RasterGrid.FromNodes"/>:
+    /// node [col, row] at x = x0 + col * cellSize and y = y0 + (nRows - 1 - row) * cellSize (row 0 is the top), with the
+    /// raster's value as M. This is what the library's former <c>RasterGrid.FromRaster</c> did.
+    /// </summary>
+    internal static RasterGrid ToGrid(EsriAsciiRaster raster)
+    {
+        double xOrigin = !double.IsNaN(raster.XLLCorner) ? raster.XLLCorner : raster.XLLCenter - raster.CellSize / 2.0;
+        double yOrigin = !double.IsNaN(raster.YLLCorner) ? raster.YLLCorner : raster.YLLCenter - raster.CellSize / 2.0;
+        var nodes = new CoordinateM[raster.NCols, raster.NRows];
+        for (int row = 0; row < raster.NRows; row++)
+        {
+            for (int col = 0; col < raster.NCols; col++)
+            {
+                nodes[col, row] = new CoordinateM(
+                    xOrigin + col * raster.CellSize,
+                    yOrigin + (raster.NRows - 1 - row) * raster.CellSize,
+                    raster.Data[col, row]);
+            }
+        }
+
+        return RasterGrid.FromNodes(nodes, raster.NoDataValue);
     }
 
     private static void WriteAscFile(

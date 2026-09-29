@@ -1,10 +1,9 @@
-using AsciiRaster.Parser;
 using NetTopologySuite.Geometries;
 
 namespace Contour.Core.ContourGenerator.MarchingSquares;
 
 /// <summary>
-/// Builds a grid of sub-triangles from an <see cref="EsriAsciiRaster"/>.
+/// Builds a grid of sub-triangles from grid nodes (see <see cref="FromNodes"/>).
 /// Each raster cell (2x2 group of grid nodes) is subdivided into 4 triangles
 /// by connecting corners to a bilinear-interpolated center point.
 /// </summary>
@@ -70,64 +69,6 @@ public class RasterGrid
             }
         }
 
-        SetAdjacency(subTriangles, cellCols, cellRows);
-
-        return new RasterGrid(subTriangles, cellCols, cellRows);
-    }
-
-    /// <summary>
-    /// Creates a <see cref="RasterGrid"/> from an <see cref="EsriAsciiRaster"/>.
-    /// Each cell gets 4 sub-triangles via bilinear center interpolation.
-    /// Adjacency relationships are established for contour tracing.
-    /// </summary>
-    public static RasterGrid FromRaster(EsriAsciiRaster raster)
-    {
-        int cellCols = raster.NCols - 1;
-        int cellRows = raster.NRows - 1;
-        var subTriangles = new TriExt?[cellCols, cellRows, 4];
-
-        // Determine origin coordinates
-        double xOrigin = !double.IsNaN(raster.XLLCorner) ? raster.XLLCorner : raster.XLLCenter - raster.CellSize / 2.0;
-        double yOrigin = !double.IsNaN(raster.YLLCorner) ? raster.YLLCorner : raster.YLLCenter - raster.CellSize / 2.0;
-
-        int triId = 0;
-
-        // Build sub-triangles for each cell
-        for (int row = 0; row < cellRows; row++)
-        {
-            for (int col = 0; col < cellCols; col++)
-            {
-                // Data is stored as [col, row] where row 0 is the top of the raster file
-                double tlVal = raster.Data[col, row];
-                double trVal = raster.Data[col + 1, row];
-                double blVal = raster.Data[col, row + 1];
-                double brVal = raster.Data[col + 1, row + 1];
-
-                // Skip cells with any NoData corner
-                if (tlVal == raster.NoDataValue || trVal == raster.NoDataValue ||
-                    blVal == raster.NoDataValue || brVal == raster.NoDataValue)
-                {
-                    continue;
-                }
-
-                // Calculate spatial coordinates
-                // Row 0 in data = top of raster = highest Y value
-                double xLeft = xOrigin + col * raster.CellSize;
-                double xRight = xOrigin + (col + 1) * raster.CellSize;
-                double yTop = yOrigin + (cellRows - row) * raster.CellSize;
-                double yBottom = yOrigin + (cellRows - row - 1) * raster.CellSize;
-
-                // Corner coordinates with M values
-                var tl = new CoordinateM(xLeft, yTop, tlVal);
-                var tr = new CoordinateM(xRight, yTop, trVal);
-                var bl = new CoordinateM(xLeft, yBottom, blVal);
-                var br = new CoordinateM(xRight, yBottom, brVal);
-
-                BuildCell(subTriangles, col, row, ref triId, tl, tr, bl, br);
-            }
-        }
-
-        // Establish adjacency relationships
         SetAdjacency(subTriangles, cellCols, cellRows);
 
         return new RasterGrid(subTriangles, cellCols, cellRows);

@@ -23,7 +23,7 @@ public class MarchingSquaresContourLinesTests
                 data[c, r] = 50.0;
 
         var raster = CreateRaster(3, 3, 1.0, data);
-        var grid = RasterGrid.FromRaster(raster);
+        var grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Act
@@ -44,7 +44,7 @@ public class MarchingSquaresContourLinesTests
         data[0, 1] = 0;  data[1, 1] = 50; data[2, 1] = 100;
 
         var raster = CreateRaster(3, 2, 1.0, data);
-        var grid = RasterGrid.FromRaster(raster);
+        var grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Act
@@ -71,7 +71,7 @@ public class MarchingSquaresContourLinesTests
         data[0, 2] = 100; data[1, 2] = 100;
 
         var raster = CreateRaster(2, 3, 1.0, data);
-        var grid = RasterGrid.FromRaster(raster);
+        var grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Act
@@ -92,7 +92,7 @@ public class MarchingSquaresContourLinesTests
         data[0, 2] = 0;  data[1, 2] = 50;  data[2, 2] = 100;
 
         var raster = CreateRaster(3, 3, 1.0, data);
-        var grid = RasterGrid.FromRaster(raster);
+        var grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Act
@@ -114,7 +114,7 @@ public class MarchingSquaresContourLinesTests
         data[0, 1] = 30; data[1, 1] = 40;
 
         var raster = CreateRaster(2, 2, 1.0, data);
-        var grid = RasterGrid.FromRaster(raster);
+        var grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Act
@@ -133,7 +133,7 @@ public class MarchingSquaresContourLinesTests
         data[0, 1] = 30; data[1, 1] = 40;
 
         var raster = CreateRaster(2, 2, 1.0, data);
-        var grid = RasterGrid.FromRaster(raster);
+        var grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Act
@@ -152,7 +152,7 @@ public class MarchingSquaresContourLinesTests
         data[0, 1] = 0;   data[1, 1] = 100;
 
         var raster = CreateRaster(2, 2, 10.0, data);
-        var grid = RasterGrid.FromRaster(raster);
+        var grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Act
@@ -179,7 +179,7 @@ public class MarchingSquaresContourLinesTests
         data[0, 1] = 0;  data[1, 1] = 50;  data[2, 1] = -9999; data[3, 1] = 100;
 
         var raster = CreateRaster(4, 2, 1.0, data);
-        var grid = RasterGrid.FromRaster(raster);
+        var grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Act
@@ -262,7 +262,7 @@ public class MarchingSquaresContourLinesTests
         data[0, 2] = 0;  data[1, 2] = 50;  data[2, 2] = 100;
 
         var raster = CreateRaster(3, 3, 1.0, data);
-        var grid = RasterGrid.FromRaster(raster);
+        var grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Act - should not throw even when interval matches vertex values exactly
