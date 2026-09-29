@@ -12,7 +12,7 @@ public class RasterGridTests
     }
 
     [TestMethod]
-    public void FromRaster_3x3Grid_Creates2x2CellGrid()
+    public void FromNodes_RasterLayout_3x3Grid_Creates2x2CellGrid()
     {
         // Arrange - 3x3 grid nodes = 2x2 cells = 8 sub-triangles per cell = 16 total
         var data = new double[3, 3];
@@ -23,7 +23,7 @@ public class RasterGridTests
         var raster = CreateRaster(3, 3, 1.0, data);
 
         // Act
-        RasterGrid grid = RasterGrid.FromRaster(raster);
+        RasterGrid grid = TestRasterHelper.ToGrid(raster);
 
         // Assert
         grid.CellCols.Should().Be(2);
@@ -32,7 +32,7 @@ public class RasterGridTests
     }
 
     [TestMethod]
-    public void FromRaster_CenterValue_IsBilinearAverage()
+    public void FromNodes_RasterLayout_CenterValue_IsBilinearAverage()
     {
         // Arrange - 2x2 grid nodes = 1 cell with known corner values
         var data = new double[2, 2];
@@ -44,7 +44,7 @@ public class RasterGridTests
         var raster = CreateRaster(2, 2, 1.0, data);
 
         // Act
-        RasterGrid grid = RasterGrid.FromRaster(raster);
+        RasterGrid grid = TestRasterHelper.ToGrid(raster);
 
         // Assert - center should be average of 4 corners = 25.0
         var tris = grid.GetAllTriangles();
@@ -58,7 +58,7 @@ public class RasterGridTests
     }
 
     [TestMethod]
-    public void FromRaster_NoDataCorner_ExcludesCell()
+    public void FromNodes_RasterLayout_NoDataCorner_ExcludesCell()
     {
         // Arrange - 2x2 grid with one NoData value
         var data = new double[2, 2];
@@ -70,14 +70,14 @@ public class RasterGridTests
         var raster = CreateRaster(2, 2, 1.0, data);
 
         // Act
-        RasterGrid grid = RasterGrid.FromRaster(raster);
+        RasterGrid grid = TestRasterHelper.ToGrid(raster);
 
         // Assert - cell is excluded, no triangles
         grid.GetAllTriangles().Should().BeEmpty();
     }
 
     [TestMethod]
-    public void FromRaster_CoordinatePositions_AreCorrect()
+    public void FromNodes_RasterLayout_CoordinatePositions_AreCorrect()
     {
         // Arrange - 2x2 grid at origin with cellSize=10
         var data = new double[2, 2];
@@ -89,7 +89,7 @@ public class RasterGridTests
         var raster = CreateRaster(2, 2, 10.0, data);
 
         // Act
-        RasterGrid grid = RasterGrid.FromRaster(raster);
+        RasterGrid grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Assert - Triangle 0 (top): TL → TR → C
@@ -103,7 +103,7 @@ public class RasterGridTests
     }
 
     [TestMethod]
-    public void FromRaster_SubTriangleAdjacency_WithinCell()
+    public void FromNodes_RasterLayout_SubTriangleAdjacency_WithinCell()
     {
         // Arrange - single cell
         var data = new double[2, 2];
@@ -114,7 +114,7 @@ public class RasterGridTests
         var raster = CreateRaster(2, 2, 1.0, data);
 
         // Act
-        RasterGrid grid = RasterGrid.FromRaster(raster);
+        RasterGrid grid = TestRasterHelper.ToGrid(raster);
         var tris = grid.GetAllTriangles();
 
         // Assert - each triangle should have exactly 2 within-cell neighbors
@@ -127,7 +127,7 @@ public class RasterGridTests
     }
 
     [TestMethod]
-    public void FromRaster_CrossCellAdjacency_IsEstablished()
+    public void FromNodes_RasterLayout_CrossCellAdjacency_IsEstablished()
     {
         // Arrange - 3x2 grid (2 cells side by side)
         var data = new double[3, 2];
@@ -138,7 +138,7 @@ public class RasterGridTests
         var raster = CreateRaster(3, 2, 1.0, data);
 
         // Act
-        RasterGrid grid = RasterGrid.FromRaster(raster);
+        RasterGrid grid = TestRasterHelper.ToGrid(raster);
 
         // Assert - right triangle of left cell and left triangle of right cell should be adjacent
         var rightTriOfLeftCell = grid.SubTriangles[0, 0, 1]; // right sub-tri of cell (0,0)
@@ -153,7 +153,7 @@ public class RasterGridTests
     }
 
     [TestMethod]
-    public void FromRaster_LargerGrid_CorrectTriangleCount()
+    public void FromNodes_RasterLayout_LargerGrid_CorrectTriangleCount()
     {
         // Arrange - 5x4 grid = 4*3 = 12 cells = 48 sub-triangles
         var data = new double[5, 4];
@@ -164,7 +164,7 @@ public class RasterGridTests
         var raster = CreateRaster(5, 4, 1.0, data);
 
         // Act
-        RasterGrid grid = RasterGrid.FromRaster(raster);
+        RasterGrid grid = TestRasterHelper.ToGrid(raster);
 
         // Assert
         grid.CellCols.Should().Be(4);

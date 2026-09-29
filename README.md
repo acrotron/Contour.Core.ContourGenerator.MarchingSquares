@@ -1,6 +1,6 @@
 # Contour.Core.ContourGenerator.MarchingSquares
 
-A .NET library for generating contour lines and contour polygons from raster grids using the Marching Squares algorithm. Built on [NetTopologySuite](https://github.com/NetTopologySuite/NetTopologySuite) geometries and the [Contour.Core](https://github.com/bjorn-ali-goransson/Contour.Core) abstraction layer.
+A .NET library for generating contour lines and contour polygons from raster grids using the Marching Squares algorithm. Built on [NetTopologySuite](https://github.com/NetTopologySuite/NetTopologySuite) geometries and the [Contour.Core](https://github.com/acrotron/Contour.Core) abstraction layer.
 
 ## How It Works
 
@@ -22,36 +22,10 @@ dotnet add package Contour.Core.ContourGenerator.MarchingSquares
 
 ## Usage
 
-### From an ESRI ASCII Raster file
+### From grid nodes
 
-```csharp
-using AsciiRaster.Parser;
-using Contour.Core.ContourGenerator.MarchingSquares;
-
-// Parse the raster file
-var raster = EsriAsciiRaster.Read("elevation.asc");
-
-// Build the triangle mesh
-var grid = RasterGrid.FromRaster(raster);
-
-// Create the generator
-var generator = new ContourGenerator(
-    new MarchingSquaresContourLines(geometryPrecision),
-    new MarchingSquaresContourPolygons(geometryPrecision));
-
-generator.SetInput(grid);
-
-// Generate contour lines at 10m intervals
-double[] intervals = [10, 20, 30, 40, 50];
-Dictionary<double, List<LineString>> contourLines = generator.GenerateContourLines(intervals);
-
-// Generate contour polygons (with optional progress reporting)
-Dictionary<double, MultiPolygon> contourPolygons = generator.GenerateContourPolygons(intervals);
-```
-
-### From pre-transformed coordinates
-
-When grid coordinates have already been projected or transformed (e.g., to WGS84):
+Build the grid from nodes with their coordinates (projected or transformed, e.g. to WGS84) and the data value as M.
+To contour an ESRI ASCII raster, read it with a raster parser and pass its cells as nodes:
 
 ```csharp
 using NetTopologySuite.Geometries;
@@ -77,7 +51,7 @@ Dictionary<double, MultiPolygon> polygons = generator.GenerateContourPolygons(in
 
 - **Contour lines** - traces isolines across the triangle mesh at specified elevation intervals
 - **Contour polygons** - generates filled polygons for areas above each contour level, with parallel processing across intervals
-- **Dual input paths** - accepts ESRI ASCII raster files or pre-transformed coordinate arrays
+- **Grid nodes as input** - any regular grid of nodes with coordinates and values; no file format dependency
 - **NoData handling** - cells with missing data are excluded from the mesh
 - **Progress reporting** - polygon generation supports `IProgress<OperationProgress>` for tracking long-running operations
 
@@ -86,8 +60,14 @@ Dictionary<double, MultiPolygon> polygons = generator.GenerateContourPolygons(in
 | Package | Description |
 |---------|-------------|
 | [Contour.Core](https://github.com/bjorn-ali-goransson/Contour.Core) | Core interfaces (`IContourGenerator`, `IContourLines`, `IContourPolygons`) |
-| [AsciiRaster.Parser](https://www.nuget.org/packages/AsciiRaster.Parser) | ESRI ASCII raster file parsing |
 | [NetTopologySuite](https://www.nuget.org/packages/NetTopologySuite) | Geometry types and spatial operations |
+
+## Version 2
+
+Version 2 removes `RasterGrid.FromRaster(EsriAsciiRaster)` and with it the dependency on AsciiRaster.Parser (and
+its transitive ProjNET4GeoAPI, LGPL-2.1), so the package depends only on MIT and BSD-licensed code. Build the grid
+with `RasterGrid.FromNodes` instead: node [col, row] at x = x0 + col · cellSize and y = y0 + (nRows − 1 − row) ·
+cellSize, with the cell value as M, gives the same triangles.
 
 ## License
 

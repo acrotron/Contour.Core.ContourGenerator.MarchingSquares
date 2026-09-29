@@ -43,7 +43,7 @@ public class ContourGeneratorTests
     public void GenerateContourLines_GradientRaster_ProducesLines()
     {
         // Arrange
-        _generator.SetInput(RasterGrid.FromRaster(CreateGradientRaster()));
+        _generator.SetInput(TestRasterHelper.ToGrid(CreateGradientRaster()));
 
         // Act
         var result = _generator.GenerateContourLines([25.0, 50.0, 75.0]);
@@ -57,7 +57,7 @@ public class ContourGeneratorTests
     public void GenerateContourPolygons_GradientRaster_ProducesPolygons()
     {
         // Arrange
-        _generator.SetInput(RasterGrid.FromRaster(CreateGradientRaster()));
+        _generator.SetInput(TestRasterHelper.ToGrid(CreateGradientRaster()));
 
         // Act
         var result = _generator.GenerateContourPolygons([50.0]);
@@ -71,7 +71,7 @@ public class ContourGeneratorTests
     public void GenerateContourLines_EmptyIntervals_ReturnsEmptyDictionary()
     {
         // Arrange
-        _generator.SetInput(RasterGrid.FromRaster(CreateGradientRaster()));
+        _generator.SetInput(TestRasterHelper.ToGrid(CreateGradientRaster()));
 
         // Act
         var result = _generator.GenerateContourLines([]);
@@ -141,30 +141,30 @@ public class ContourGeneratorTests
     }
 
     [TestMethod]
-    public void GenerateContourLines_FromNodes_MatchesFromRaster()
+    public void GenerateContourLines_RasterHelperAndHandBuiltNodes_ProduceSameLines()
     {
-        // Arrange - same data via both paths
+        // Arrange - same data via the test raster helper and via hand-built nodes
         double[,] data = new double[5, 5];
         for (int col = 0; col < 5; col++)
             for (int row = 0; row < 5; row++)
                 data[col, row] = col * 25.0;
 
-        // Path 1: FromRaster
+        // Path 1: raster converted by TestRasterHelper.ToGrid
         var raster = TestRasterHelper.CreateRaster(5, 5, 1.0, data);
         var generatorA = new ContourGenerator(
             new MarchingSquaresContourLines(Precision),
             new MarchingSquaresContourPolygons(Precision));
-        generatorA.SetInput(RasterGrid.FromRaster(raster));
+        generatorA.SetInput(TestRasterHelper.ToGrid(raster));
         var resultA = generatorA.GenerateContourLines([50.0]);
 
-        // Path 2: FromNodes (using same raw coordinates as FromRaster would compute)
+        // Path 2: FromNodes with hand-built node coordinates
         var nodes = new NetTopologySuite.Geometries.CoordinateM[5, 5];
         for (int col = 0; col < 5; col++)
             for (int row = 0; row < 5; row++)
             {
-                // FromRaster uses: xOrigin + col*cellSize, yOrigin + (cellRows - row)*cellSize
+                // x = xOrigin + col * cellSize, y = yOrigin + (cellRows - row) * cellSize
                 double x = 0 + col * 1.0;
-                double y = 0 + (4 - row) * 1.0; // Y-flip like FromRaster
+                double y = 0 + (4 - row) * 1.0; // Y-flip: row 0 is the top
                 nodes[col, row] = new NetTopologySuite.Geometries.CoordinateM(x, y, data[col, row]);
             }
 
@@ -176,11 +176,11 @@ public class ContourGeneratorTests
         var resultB = generatorB.GenerateContourLines([50.0]);
 
         // Assert - both should produce non-empty results
-        resultA[50.0].Should().NotBeEmpty("FromRaster path should produce lines");
+        resultA[50.0].Should().NotBeEmpty("raster helper path should produce lines");
         resultB[50.0].Should().NotBeEmpty("FromNodes path should produce lines");
 
         // Both paths should produce the same number of contour line segments
         resultA[50.0].Count.Should().Be(resultB[50.0].Count,
-            "FromNodes and FromRaster should produce the same number of contour lines");
+            "both paths should produce the same number of contour lines");
     }
 }

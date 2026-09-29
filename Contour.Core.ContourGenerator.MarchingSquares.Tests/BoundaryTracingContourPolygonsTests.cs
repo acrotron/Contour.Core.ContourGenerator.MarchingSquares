@@ -22,7 +22,7 @@ public class BoundaryTracingContourPolygonsTests
         data[0, 0] = 100; data[1, 0] = 100;
         data[0, 1] = 100; data[1, 1] = 100;
 
-        var tris = RasterGrid.FromRaster(CreateRaster(2, 2, 1.0, data)).GetAllTriangles();
+        var tris = TestRasterHelper.ToGrid(CreateRaster(2, 2, 1.0, data)).GetAllTriangles();
 
         var original = _original.Contours(tris, [50.0]);
         var boundary = _boundary.Contours(tris, [50.0]);
@@ -39,7 +39,7 @@ public class BoundaryTracingContourPolygonsTests
         data[0, 0] = 10; data[1, 0] = 10;
         data[0, 1] = 10; data[1, 1] = 10;
 
-        var tris = RasterGrid.FromRaster(CreateRaster(2, 2, 1.0, data)).GetAllTriangles();
+        var tris = TestRasterHelper.ToGrid(CreateRaster(2, 2, 1.0, data)).GetAllTriangles();
 
         var original = _original.Contours(tris, [50.0]);
         var boundary = _boundary.Contours(tris, [50.0]);
@@ -54,7 +54,7 @@ public class BoundaryTracingContourPolygonsTests
         data[0, 0] = 0;   data[1, 0] = 100;
         data[0, 1] = 0;   data[1, 1] = 100;
 
-        var tris = RasterGrid.FromRaster(CreateRaster(2, 2, 1.0, data)).GetAllTriangles();
+        var tris = TestRasterHelper.ToGrid(CreateRaster(2, 2, 1.0, data)).GetAllTriangles();
 
         var original = _original.Contours(tris, [50.0]);
         var boundary = _boundary.Contours(tris, [50.0]);
@@ -74,7 +74,7 @@ public class BoundaryTracingContourPolygonsTests
         data[0, 1] = 0;  data[1, 1] = 50;  data[2, 1] = 100;
         data[0, 2] = 0;  data[1, 2] = 50;  data[2, 2] = 100;
 
-        var tris = RasterGrid.FromRaster(CreateRaster(3, 3, 1.0, data)).GetAllTriangles();
+        var tris = TestRasterHelper.ToGrid(CreateRaster(3, 3, 1.0, data)).GetAllTriangles();
         double[] intervals = [25.0, 75.0];
 
         var original = _original.Contours(tris, intervals);
@@ -99,7 +99,7 @@ public class BoundaryTracingContourPolygonsTests
             for (int row = 0; row < 5; row++)
                 data[col, row] = col * 25.0;
 
-        var tris = RasterGrid.FromRaster(CreateRaster(5, 5, 1.0, data)).GetAllTriangles();
+        var tris = TestRasterHelper.ToGrid(CreateRaster(5, 5, 1.0, data)).GetAllTriangles();
         double[] intervals = [25.0, 50.0, 75.0];
 
         var original = _original.Contours(tris, intervals);
@@ -122,7 +122,7 @@ public class BoundaryTracingContourPolygonsTests
         data[0, 1] = 0;  data[1, 1] = 50;  data[2, 1] = 100;
         data[0, 2] = 0;  data[1, 2] = 50;  data[2, 2] = 100;
 
-        var tris = RasterGrid.FromRaster(CreateRaster(3, 3, 1.0, data)).GetAllTriangles();
+        var tris = TestRasterHelper.ToGrid(CreateRaster(3, 3, 1.0, data)).GetAllTriangles();
 
         var act = () => _boundary.Contours(tris, [0.0, 50.0, 100.0]);
         act.Should().NotThrow();
@@ -149,7 +149,7 @@ public class BoundaryTracingContourPolygonsTests
         }
 
         var raster = new FileReader().Read(path);
-        var tris = RasterGrid.FromRaster(raster).GetAllTriangles();
+        var tris = TestRasterHelper.ToGrid(raster).GetAllTriangles();
         Console.WriteLine($"Triangle count: {tris.Count}");
 
         double[] intervals = [35.0, 50.0, 65.0];
